@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced TSP Solver & Visualizer</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .animate-float {
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(0px);
+            }
+
+            50% {
+                transform: translateY(-10px);
+            }
+
+            100% {
+                transform: translateY(0px);
+            }
+        }
+
+        .tooltip {
+            position: relative;
+            display: inline-block;
+            border-bottom: 1px dotted black;
+        }
+
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 200px;
+            background-color: #555;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -100px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen flex flex-col items-center justify-center p-6">
+    <div class="container mx-auto bg-white shadow-2xl rounded-3xl p-8 max-w-6xl">
+        <div class="grid md:grid-cols-3 gap-8">
+            <!-- Input Section -->
+            <div class="md:col-span-1 space-y-6">
+                <h2 class="text-3xl font-bold text-gray-800 mb-4 flex items-center">
+                    <svg class="w-10 h-10 mr-3 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd"
+                            d="M6 2a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7.414A2 2 0 0015.414 6L12 2.586A2 2 0 0010.586 2H6zm2 10a1 1 0 10-2 0v3a1 1 0 102 0v-3zm2-3a1 1 0 011 1v4a1 1 0 11-2 0v-4a1 1 0 011-1zm4-1a1 1 0 10-2 0v6a1 1 0 102 0V8z"
+                            clip-rule="evenodd" />
+                    </svg>
+                    TSP Solver
+                </h2>
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-gray-700 mb-2">Distance Matrix</label>
+                        <textarea id="matrixInput"
+                            class="w-full p-3 border-2 border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-400 transition"
+                            rows="6"
+                            placeholder="Enter distance matrix&#10;Example:&#10;0,10,15,20&#10;10,0,35,25&#10;15,35,0,30&#10;20,25,30,0"></textarea>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <select id="algorithmSelect" class="w-full p-2 border rounded-lg">
+                            <option value="backtracking">Backtracking</option>
+                            <!-- <option value="branchBound">Branch & Bound</option> -->
+                        </select>
+
+                        <select id="startCitySelect" class="w-full p-2 border rounded-lg">
+                            <option value="0">Start from City 0</option>
+                        </select>
+                    </div>
+
+                    <div class="flex space-x-4">
+                        <button onclick="solveTSP()"
+                            class="flex-grow bg-purple-500 hover:bg-purple-600 text-white font-bold py-3 px-4 rounded-lg transition transform hover:scale-105">
+                            Solve Route
+                        </button>
+                        <button onclick="clearInput()"
+                            class="flex-grow bg-gray-200 hover:bg-gray-300 text-gray-800 py-3 px-4 rounded-lg transition transform hover:scale-105">
+                            Reset
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Visualization Section -->
+            <div class="md:col-span-1 bg-gray-50 rounded-xl p-4">
+                <h3 class="text-xl font-semibold mb-4 text-center">Route Visualization</h3>
+                <svg id="visualization" class="w-full h-96 bg-white shadow-md rounded-lg" viewBox="0 0 400 400"></svg>
+                <div id="routeInfo" class="mt-4 text-center"></div>
+            </div>
+
+            <!-- Analysis Section -->
+            <div class="md:col-span-1 bg-gray-50 rounded-xl p-4">
+                <h3 class="text-xl font-semibold mb-4 text-center">Performance Analysis</h3>
+                <canvas id="performanceChart" class="w-full h-64"></canvas>
+                <div id="algorithmStats" class="mt-4 text-center space-y-2"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+    <script>
+        // Advanced TSP Solvers
+        function backtrackingTSP(matrix, start) {
+            const startTime = performance.now();
+
+            let n = matrix.length;
+            let visited = Array(n).fill(false);
+            let minPath = Infinity;
+            let bestRoute = [];
+            let iterations = 0;
+
+            function backtrack(currPos, count, cost, path) {
+                iterations++;
+
+                if (count === n && matrix[currPos][start] > 0) {
+                    let totalCost = cost + matrix[currPos][start];
+                    if (totalCost < minPath) {
+                        minPath = totalCost;
+                        bestRoute = path.slice();
+                        bestRoute.push(start);
+                    }
+                    return;
+                }
+
+                for (let i = 0; i < n; i++) {
+                    if (!visited[i] && matrix[currPos][i] > 0) {
+                        visited[i] = true;
+                        path.push(i);
+                        backtrack(i, count + 1, cost + matrix[currPos][i], path);
+                        path.pop();
+                        visited[i] = false;
+                    }
+                }
+            }
+
+            visited[start] = true;
+            backtrack(start, 1, 0, [start]);
+
+            const endTime = performance.now();
+            return {
+                minPath,
+                bestRoute,
+                executionTime: endTime - startTime,
+                iterations
+            };
+        }
+
+
+
+        function solveTSP() {
+            let input = document.getElementById("matrixInput").value.trim();
+            let algorithmType = document.getElementById("algorithmSelect").value;
+            let startCity = parseInt(document.getElementById("startCitySelect").value);
+
+            if (input === "") {
+                alert("Please enter a valid distance matrix.");
+                return;
+            }
+
+            let rows = input.split("\n");
+            let matrix = rows.map(row => row.split(",").map(Number));
+
+            if (matrix.length !== matrix[0].length) {
+                alert("Matrix must be square (same number of rows and columns).");
+                return;
+            }
+
+            // Update start city dropdown dynamically
+            let startCitySelect = document.getElementById("startCitySelect");
+            startCitySelect.innerHTML = '';
+            for (let i = 0; i < matrix.length; i++) {
+                let option = document.createElement("option");
+                option.value = i;
+                option.text = `Start from City ${i}`;
+                startCitySelect.add(option);
+            }
+
+            let result;
+            if (algorithmType === 'backtracking') {
+                result = backtrackingTSP(matrix, startCity);
+            } else {
+                result = branchAndBoundTSP(matrix, startCity);
+            }
+
+            updateRouteInfo(result);
+            visualizeRoute(result.bestRoute);
+            createPerformanceChart(result);
+        }
+
+        function updateRouteInfo(result) {
+            let routeInfoDiv = document.getElementById("routeInfo");
+            routeInfoDiv.innerHTML = `
+                <p><strong>Total Distance:</strong> ${result.minPath.toFixed(2)}</p>
+                <p><strong>Route:</strong> ${result.bestRoute.join(" ➔ ")}</p>
+            `;
+        }
+
+        function visualizeRoute(route) {
+            const svg = document.getElementById("visualization");
+            svg.innerHTML = '';
+
+            let numCities = route.length;
+            let angleStep = (2 * Math.PI) / numCities;
+            let radius = 150;
+            let centerX = 200;
+            let centerY = 200;
+
+            let cityPositions = [];
+
+            // Draw cities
+            for (let i = 0; i < numCities; i++) {
+                let angle = i * angleStep;
+                let x = centerX + radius * Math.cos(angle);
+                let y = centerY + radius * Math.sin(angle);
+                cityPositions.push({ x, y });
+
+                let cityCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                cityCircle.setAttribute("cx", x);
+                cityCircle.setAttribute("cy", y);
+                cityCircle.setAttribute("r", 20);
+                cityCircle.setAttribute("fill", route[i] === 0 ? "#FF6384" : "#36A2EB");
+                cityCircle.setAttribute("class", "animate-float");
+
+                let cityText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                cityText.setAttribute("x", x);
+                cityText.setAttribute("y", y);
+                cityText.setAttribute("text-anchor", "middle");
+                cityText.setAttribute("dy", ".3em");
+                cityText.setAttribute("fill", "white");
+                cityText.setAttribute("font-weight", "bold");
+                cityText.textContent = route[i];
+
+                svg.appendChild(cityCircle);
+                svg.appendChild(cityText);
+            }
+
+            // Draw route lines
+            for (let i = 0; i < numCities - 1; i++) {
+                let cityA = cityPositions[i];
+                let cityB = cityPositions[i + 1];
+
+                let line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                line.setAttribute("x1", cityA.x);
+                line.setAttribute("y1", cityA.y);
+                line.setAttribute("x2", cityB.x);
+                line.setAttribute("y2", cityB.y);
+                line.setAttribute("stroke", "#9C27B0");
+                line.setAttribute("stroke-width", "3");
+                line.setAttribute("stroke-dasharray", "5,5");
+
+                svg.insertBefore(line, svg.firstChild);
+            }
+        }
+
+        function createPerformanceChart(result) {
+            const ctx = document.getElementById('performanceChart').getContext('2d');
+            const algorithmStats = document.getElementById('algorithmStats');
+
+            // Performance statistics
+            algorithmStats.innerHTML = `
+                <p><strong>Execution Time:</strong> ${result.executionTime.toFixed(2)} ms</p>
+                <p><strong>Iterations:</strong> ${result.iterations}</p>
+            `;
+
+            // Destroy existing chart if it exists
+            if (window.performanceChart instanceof Chart) {
+                window.performanceChart.destroy();
+            }
+
+            window.performanceChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Execution Time (ms)', 'Iterations'],
+                    datasets: [{
+                        label: 'Performance Metrics',
+                        data: [result.executionTime, result.iterations],
+                        backgroundColor: ['#FF6384', '#36A2EB'],
+                        borderColor: ['#FF6384', '#36A2EB'],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        function clearInput() {
+            document.getElementById("matrixInput").value = "";
+            document.getElementById("visualization").innerHTML = '';
+            document.getElementById("routeInfo").innerHTML = '';
+            document.getElementById("algorithmStats").innerHTML = '';
+
+            if (window.performanceChart instanceof Chart) {
+                window.performanceChart.destroy();
+            }
+        }
+    </script>
+</body>
+
+</html>
