@@ -204,9 +204,10 @@
             let result;
             if (algorithmType === 'backtracking') {
                 result = backtrackingTSP(matrix, startCity);
-            } else {
-                result = branchAndBoundTSP(matrix, startCity);
             }
+            // else {
+            //     result = branchAndBoundTSP(matrix, startCity);
+            // }
 
             updateRouteInfo(result);
             visualizeRoute(result.bestRoute);
@@ -296,12 +297,12 @@
             window.performanceChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: ['Execution Time (ms)', 'Iterations'],
+                    labels: ['Iterations'],
                     datasets: [{
                         label: 'Performance Metrics',
-                        data: [result.executionTime, result.iterations],
-                        backgroundColor: ['#FF6384', '#36A2EB'],
-                        borderColor: ['#FF6384', '#36A2EB'],
+                        data: [result.iterations],
+                        backgroundColor: ['#36A2EB'],
+                        borderColor: ['#36A2EB'],
                         borderWidth: 1
                     }]
                 },
